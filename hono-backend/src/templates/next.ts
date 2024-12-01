@@ -1,5 +1,4 @@
-export const basePrompt = `
-export const basePrompt = \`<boltArtifact id="project-import" title="Project Files"><boltAction type="file" filePath=".bolt/ignore">components/ui/*
+export const basePrompt = `<boltArtifact id="project-import" title="Project Files"><boltAction type="file" filePath=".bolt/ignore">components/ui/*
 hooks/use-toast.ts
 </boltAction><boltAction type="file" filePath=".bolt/prompt">For all designs I ask you to make, have them be beautiful, not cookie cutter. Make webpages that are fully featured and worthy for production.
 

@@ -4,9 +4,18 @@ import { logger } from "hono/logger";
 import { z } from "@hono/zod-openapi";
 import ollama from "ollama";
 import { basePrompts } from "./templates";
-import { BASE_PROMPT } from "./prompts";
-import { isValidTechnology, promptMaker } from "./utils";
+import { BASE_PROMPT, getSystemPrompt } from "./prompts";
+import { convertMessageFormat, isValidTechnology, promptMaker } from "./utils";
 import { AI_MODEL, TEMPLATE_SYSTEM_PROMPT } from "./constants";
+import { GoogleGenerativeAI } from "@google/generative-ai"
+
+const genAI = new GoogleGenerativeAI(Bun.env.GEMINI_API_KEY!);
+const model = genAI.getGenerativeModel({
+  model: "gemini-1.5-pro", systemInstruction: getSystemPrompt(), tools: [
+    {
+      codeExecution: {},
+    }
+  ] });
 
 const app = new Hono();
 
@@ -64,6 +73,37 @@ app.post("/template", async (c) => {
     return c.json({ error: "Internal server error" }, 500);
   }
 });
+
+app.post("/chat", async (c) => {
+
+  const { messages } = await c.req.json() as { messages: { role: string, content: string }[] };
+  // const response = await ollama.chat({
+  //   model: AI_MODEL,
+  //   messages: [
+  //     ...messages
+  //   ],
+  //   stream: true
+  // })
+
+  // for await (const message of response) {
+  //   process.stdout.write(message.message.content);
+  // }
+
+  const { parsedMessages, userPrompt } = convertMessageFormat(messages)
+
+  const response = model.startChat({
+    history: parsedMessages,
+  })
+
+  const result = await response.sendMessageStream(userPrompt)
+
+  for await (const chunk of result.stream) {
+    const chunkText = chunk.text();
+    process.stdout.write(chunkText);
+  }
+    
+  return c.json({});
+})
 
 
 
