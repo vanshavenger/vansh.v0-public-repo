@@ -1,24 +1,21 @@
 import { Hono } from "hono";
-import { cors } from 'hono/cors';
-import { logger } from 'hono/logger';
-import { z } from '@hono/zod-openapi'
+import { cors } from "hono/cors";
+import { logger } from "hono/logger";
+import { z } from "@hono/zod-openapi";
 import ollama from "ollama";
 import { basePrompts } from "./templates";
+import { BASE_PROMPT } from "./prompts";
+import { isValidTechnology, promptMaker } from "./utils";
+import { AI_MODEL, TEMPLATE_SYSTEM_PROMPT } from "./constants";
 
 const app = new Hono();
 
-app.use('*', cors());
-app.use('*', logger());
+app.use("*", cors());
+app.use("*", logger());
 
 const promptSchema = z.object({
   prompt: z.string().min(1).max(1000),
 });
-
-type TechnologyType = 'react' | 'node' | 'next';
-
-const isValidTechnology = (tech: string): tech is TechnologyType => {
-  return ['react', 'node', 'next'].includes(tech.toLowerCase());
-};
 
 app.post("/template", async (c) => {
   try {
@@ -26,15 +23,35 @@ app.post("/template", async (c) => {
     const { prompt } = promptSchema.parse(body);
 
     const response = await ollama.generate({
-      model: "qwen2.5-coder:14b",
+      model: AI_MODEL,
       prompt: prompt,
-      system: "Based on the context of this project, return exactly one of the following technologies in lowercase: 'react', 'node', or 'next'. Your response should consist of only this single word, without any additional text, punctuation, or explanation. DO NOT include any additional information or context.",
+      system: TEMPLATE_SYSTEM_PROMPT,
     });
 
     const answer = response.response.trim().toLowerCase();
 
     if (isValidTechnology(answer)) {
-      return c.json({ response: answer });
+      switch (answer) {
+        case "react":
+          return c.json({
+            prompts: [BASE_PROMPT, promptMaker(basePrompts.react)],
+            uiPrompts: [basePrompts.react],
+          });
+        case "node":
+          return c.json({
+            prompts: [promptMaker(basePrompts.node)],
+            uiPrompts: [basePrompts.node],
+          });
+
+        case "next":
+          return c.json({
+            prompts: [BASE_PROMPT, promptMaker(basePrompts.next)],
+            uiPrompts: [basePrompts.next],
+          });
+        default:
+          console.warn(`Unexpected response from Ollama: ${answer}`);
+          return c.json({ error: "Unexpected response from AI model" }, 422);
+      }
     } else {
       console.warn(`Unexpected response from Ollama: ${answer}`);
       return c.json({ error: "Unexpected response from AI model" }, 422);
@@ -43,10 +60,12 @@ app.post("/template", async (c) => {
     if (error instanceof z.ZodError) {
       return c.json({ error: "Invalid input", details: error.errors }, 400);
     }
-    console.error('Error processing request:', error);
+    console.error("Error processing request:", error);
     return c.json({ error: "Internal server error" }, 500);
   }
 });
+
+
 
 app.notFound((c) => {
   return c.json({ error: "Not Found" }, 404);
@@ -61,4 +80,3 @@ export default {
   port: 3000,
   fetch: app.fetch,
 };
-

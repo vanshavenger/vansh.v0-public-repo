@@ -2,6 +2,12 @@ export const WORK_DIR_NAME = "project";
 export const WORK_DIR = `/home/${WORK_DIR_NAME}`;
 export const MODIFICATIONS_TAG_NAME = "bolt_file_modifications";
 
+export const VALID_TECHNOLOGIES = ["react", "node", "next"] as const;
+export type TechnologyType = (typeof VALID_TECHNOLOGIES)[number];
+
+export const AI_MODEL = "qwen2.5-coder:14b";
+export const TEMPLATE_SYSTEM_PROMPT =
+  "Based on the context of this project, return exactly one of the following technologies in lowercase: 'react', 'node', or 'next'. Your response should consist of only this single word, without any additional text, punctuation, or explanation. DO NOT include any additional information or context.";
 export const allowedHTMLElements = [
   "a",
   "b",
