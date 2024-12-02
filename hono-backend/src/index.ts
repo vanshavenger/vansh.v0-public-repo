@@ -7,15 +7,18 @@ import { basePrompts } from "./templates";
 import { BASE_PROMPT, getSystemPrompt } from "./prompts";
 import { convertMessageFormat, isValidTechnology, promptMaker } from "./utils";
 import { AI_MODEL, TEMPLATE_SYSTEM_PROMPT } from "./constants";
-import { GoogleGenerativeAI } from "@google/generative-ai"
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(Bun.env.GEMINI_API_KEY!);
 const model = genAI.getGenerativeModel({
-  model: "gemini-1.5-pro", systemInstruction: getSystemPrompt(), tools: [
+  model: "gemini-1.5-pro",
+  systemInstruction: getSystemPrompt(),
+  tools: [
     {
       codeExecution: {},
-    }
-  ] });
+    },
+  ],
+});
 
 const app = new Hono();
 
@@ -38,6 +41,7 @@ app.post("/template", async (c) => {
     });
 
     const answer = response.response.trim().toLowerCase();
+    console.log(answer);
 
     if (isValidTechnology(answer)) {
       switch (answer) {
@@ -75,37 +79,31 @@ app.post("/template", async (c) => {
 });
 
 app.post("/chat", async (c) => {
-
-  const { messages } = await c.req.json() as { messages: { role: string, content: string }[] };
+  const { messages } = (await c.req.json()) as {
+    messages: { role: string; content: string }[];
+  };
   // const response = await ollama.chat({
   //   model: AI_MODEL,
   //   messages: [
+  //     // {
+  //     //   role: "system",
+  //     //   content: getSystemPrompt()
+  //     // },
   //     ...messages
   //   ],
-  //   stream: true
   // })
 
-  // for await (const message of response) {
-  //   process.stdout.write(message.message.content);
-  // }
-
-  const { parsedMessages, userPrompt } = convertMessageFormat(messages)
+  const { parsedMessages, userPrompt } = convertMessageFormat(messages);
 
   const response = model.startChat({
     history: parsedMessages,
-  })
+  });
 
-  const result = await response.sendMessageStream(userPrompt)
-
-  for await (const chunk of result.stream) {
-    const chunkText = chunk.text();
-    process.stdout.write(chunkText);
-  }
-    
-  return c.json({});
-})
-
-
+  const result = await response.sendMessage(userPrompt);
+  return c.json({
+    response: result.response.text(),
+  });
+});
 
 app.notFound((c) => {
   return c.json({ error: "Not Found" }, 404);
