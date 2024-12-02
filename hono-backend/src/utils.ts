@@ -8,21 +8,26 @@ export const isValidTechnology = (tech: string): tech is TechnologyType => {
   return ["react", "node", "next"].includes(tech.toLowerCase());
 };
 
-export function convertMessageFormat(originalMessages: { role: string; content: string }[]) : { parsedMessages: { role: string; parts: { text: string }[] }[], userPrompt: string } {
+export function convertMessageFormat(
+  originalMessages: { role: string; content: string }[],
+): {
+  parsedMessages: { role: string; parts: { text: string }[] }[];
+  userPrompt: string;
+} {
   if (originalMessages.length === 0) {
-    return { parsedMessages: [], userPrompt: '' };
+    return { parsedMessages: [], userPrompt: "" };
   }
 
-  const historyMessages = originalMessages.slice(0, -1).map(message => ({
+  const historyMessages = originalMessages.slice(0, -1).map((message) => ({
     role: message.role,
-    parts: [{ text: message.content }]
+    parts: [{ text: message.content }],
   }));
 
   const lastMessage = originalMessages[originalMessages.length - 1];
-  const prompt = lastMessage ? lastMessage.content : '';
+  const prompt = lastMessage ? lastMessage.content : "";
 
   return {
     parsedMessages: historyMessages,
-    userPrompt: prompt
+    userPrompt: prompt,
   };
 }
